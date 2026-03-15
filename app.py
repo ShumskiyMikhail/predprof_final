@@ -3,10 +3,12 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import db, User
 from analytics_service import AnalyticsService
+from model_loader import load_model, predict_from_wav_array
 import numpy as np
 import io
 import os
 
+# ── Инициализация приложения ──────────────────────────────────────────────────
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'mission_to_mars_2226'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.path.dirname(__file__), 'signals.db')
@@ -19,14 +21,22 @@ login_manager.login_view = 'login'
 
 analytics = AnalyticsService()
 
+# ── Загрузка нейросети при старте ────────────────────────────────────────────
+_nn_model, _nn_path = load_model()
+if _nn_path:
+    print(f'[MODEL] Нейросеть загружена: {_nn_path}')
+else:
+    print('[MODEL] Файл .h5 не найден — будут использованы случайные предсказания')
+
+# ── Создание БД и дефолтного админа при старте ────────────────────────────────
 with app.app_context():
     db.create_all()
     if not User.query.filter_by(username='admin').first():
         db.session.add(User(
             username='admin',
             password=generate_password_hash('admin123'),
-            first_name='root',
-            last_name='root',
+            first_name='Михаил',
+            last_name='Учёный',
             role='admin'
         ))
         db.session.commit()
@@ -35,11 +45,13 @@ with app.app_context():
         print('[DB] База данных загружена.')
 
 
+# ── Flask-Login ───────────────────────────────────────────────────────────────
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 
+# ── Маршруты ──────────────────────────────────────────────────────────────────
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -128,11 +140,14 @@ def upload_test():
                 return np.array([mapping[v] for v in arr], dtype=np.int64), classes
             return arr.astype(np.int64), None
 
+        # Метки для графиков (train / val)
+        # train_y может содержать имена файлов — кодируем на всякий случай
         if 'train_y' in data:
             train_y, _ = encode_labels(data['train_y'])
         else:
-            train_y = None
+            train_y = None  # заполним после определения num_classes
 
+        # valid_y — числовые классы цивилизаций
         if 'valid_y' in data:
             val_y, _ = encode_labels(data['valid_y'])
         elif 'vaild_y' in data:
@@ -140,10 +155,11 @@ def upload_test():
         else:
             val_y = None
 
+        # test_y — для тестового файла (с паролем от комиссии)
         if 'test_y' in data:
             t_y, _ = encode_labels(data['test_y'])
         elif val_y is not None:
-            t_y = val_y
+            t_y = val_y  # используем valid_y как тестовые метки
         else:
             flash('В файле не найдены метки классов')
             return redirect(url_for('profile'))
@@ -155,18 +171,30 @@ def upload_test():
         if val_y is None:
             val_y = np.random.randint(0, num_classes, 400)
 
+        # Предсказания модели
         if 'test_preds' in data:
+            # Готовые предсказания из файла (model_output_final.npz)
             t_preds = np.array(data['test_preds'], dtype=np.float64)
+        elif 'test_x' in data and _nn_model is not None:
+            # Прогоняем test_x через нейросеть
+            t_preds = predict_from_wav_array(data['test_x'], model=_nn_model).astype(np.float64)
+        elif 'valid_x' in data and _nn_model is not None:
+            # Используем valid_x если test_x нет
+            x_key = 'valid_x' if 'valid_x' in data else 'vaild_x'
+            t_preds = predict_from_wav_array(data[x_key], model=_nn_model).astype(np.float64)
         else:
+            # Нет ни модели ни готовых предсказаний — случайные
             rng = np.random.default_rng(42)
             t_preds = rng.dirichlet(np.ones(num_classes), size=len(t_y))
 
+        # История обучения
         hist = {}
         hist['val_acc'] = data['val_acc'].tolist() if 'val_acc' in data \
             else [0.42, 0.61, 0.74, 0.83, 0.88, 0.91, 0.93]
         if 'train_acc' in data:
             hist['train_acc'] = data['train_acc'].tolist()
 
+        # Метрики
         predicted  = np.argmax(t_preds, axis=1)
         acc        = float(np.mean(predicted == t_y))
         eps        = 1e-9
@@ -183,7 +211,10 @@ def upload_test():
                                loss=round(loss, 4),
                                count=len(t_y))
 
+
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         flash(f'Ошибка обработки файла: {e}')
         return redirect(url_for('profile'))
 
@@ -195,5 +226,6 @@ def logout():
     return redirect(url_for('login'))
 
 
+# ── Запуск ────────────────────────────────────────────────────────────────────
 if __name__ == '__main__':
     app.run(debug=True)

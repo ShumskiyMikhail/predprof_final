@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="row g-4">
+<div class="row g-4" style="position:relative;z-index:1;">
 
     <!-- ── ПРОФИЛЬ ────────────────────────────────────────────── -->
     <div class="col-lg-4">
@@ -28,15 +28,17 @@
                         <circle cx="12" cy="7" r="4" stroke="#00e5ff" stroke-width="1.5" opacity="0.7"/>
                     </svg>
                 </div>
-                <div class="orbitron" style="font-size:1rem; font-weight:700; color:#fff; letter-spacing:2px;">
-                    {{ user.first_name | upper }} {{ user.last_name | upper }}
-                </div>
+                <div class="orbitron" id="user-name-typed" style="font-size:1rem; font-weight:700; color:#fff; letter-spacing:2px;" data-text="{{ user.first_name | upper }} {{ user.last_name | upper }}">&nbsp;</div>
                 <div class="mt-2">
                     {% if user.role == 'admin' %}
                         <span class="badge-hud badge-admin">ADMINISTRATOR</span>
                     {% else %}
                         <span class="badge-hud badge-user">OPERATOR</span>
                     {% endif %}
+                </div>
+                <!-- Голографический глобус -->
+                <div style="margin-top:16px;display:flex;justify-content:center;">
+                    <canvas id="globe-cv" width="110" height="110" style="opacity:.85;"></canvas>
                 </div>
             </div>
 
@@ -178,7 +180,11 @@
                         </svg>
                         Файл набора данных (.npz)
                     </label>
-                    <input type="file" name="test_file" class="form-control" accept=".npz" required>
+                    <input type="file" name="test_file" id="npz-file-input" class="form-control" accept=".npz" required>
+                    <div id="scan-bar-wrap" style="margin-top:8px;height:3px;background:rgba(0,229,255,.08);border-radius:2px;overflow:hidden;display:none;">
+                        <div id="scan-bar" style="height:100%;width:0;background:linear-gradient(90deg,transparent,#00e5ff,transparent);transition:none;"></div>
+                    </div>
+                    <div id="scan-status" style="display:none;font-family:'Share Tech Mono',monospace;font-size:10px;color:#00e5ff;letter-spacing:2px;margin-top:4px;">READING DATA...</div>
                     <div class="mono mt-2" style="font-size:10px; color: var(--text-dim); line-height:1.6;">
                         Обязательно: <span style="color: var(--cyan);">test_y</span> / <span style="color: var(--cyan);">valid_y</span>
 <!--                        Опционально: <span style="color:var(&#45;&#45;text-dim)">train_y, val_acc, test_preds</span>-->
@@ -191,10 +197,243 @@
                     Запустить классификацию
                 </button>
             </form>
+            <div style="margin-top:14px;overflow:hidden;border-radius:4px;background:rgba(0,229,255,0.03);border:1px solid rgba(0,229,255,0.12);">
+                <canvas id="dna-cv" height="60" style="display:block;width:100%;"></canvas>
+            </div>
         </div>
         {% endif %}
 
     </div>
 </div>
+
+
+<!-- MATRIX фон -->
+<canvas id="matrix-bg" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0.13;"></canvas>
+
+<!-- ДНК под блоком анализа -->
+<canvas id="dna-cv" height="60" style="display:block;width:100%;margin-top:16px;border-radius:3px;"></canvas>
+
+<script>
+/* ── МАТРИЦА ── */
+(function(){
+    var cv=document.getElementById('matrix-bg');
+    if(!cv) return;
+    var ctx=cv.getContext('2d');
+    var cols,drops,W,H;
+    var chars='アイウエオカキクケコサシスセソタチツテトナニヌネノ01アABCDEF染色体シグナル外星人'.split('');
+    var colors=['#00e5ff','#00ff88','#7b2fff','#00b4cc'];
+    function resize(){
+        W=cv.width=window.innerWidth;
+        H=cv.height=window.innerHeight;
+        cols=Math.floor(W/18);
+        drops=[];
+        for(var i=0;i<cols;i++) drops[i]=-Math.floor(Math.random()*60);
+    }
+    resize();
+    window.addEventListener('resize',resize);
+    setInterval(function(){
+        ctx.fillStyle='rgba(2,8,16,0.18)';
+        ctx.fillRect(0,0,W,H);
+        for(var i=0;i<cols;i++){
+            var ch=chars[Math.floor(Math.random()*chars.length)];
+            var ci=Math.floor(i/cols*colors.length);
+            var y=drops[i]*18;
+            /* яркий символ на конце */
+            ctx.fillStyle='rgba(255,255,255,0.95)';
+            ctx.font='bold 13px monospace';
+            ctx.fillText(ch, i*18+2, y);
+            /* цветной след */
+            ctx.fillStyle=colors[ci%colors.length];
+            ctx.font='12px monospace';
+            ctx.fillText(chars[Math.floor(Math.random()*chars.length)], i*18+2, y-18);
+            if(y>H&&Math.random()>.97) drops[i]=0;
+            else drops[i]+=.8;
+        }
+    },40);
+})();
+
+/* ── ДНК ── */
+(function(){
+    var cv=document.getElementById('dna-cv');
+    if(!cv) return;
+    var ctx=cv.getContext('2d');
+    var t=0;
+    var baseColors=[['#00e5ff','#0077aa'],['#00ff88','#007744'],['#7b2fff','#3a0080'],['#ff2d55','#880020']];
+    function resize(){ cv.width=cv.offsetWidth||700; }
+    resize();
+    window.addEventListener('resize',resize);
+    function frame(){
+        var W=cv.width,H=60;
+        ctx.clearRect(0,0,W,H);
+        var step=22, N=Math.ceil(W/step)+4;
+        /* перемычки */
+        for(var i=0;i<N;i++){
+            var x=i*step-(step*2)+(t%step);
+            var ph=i*.55-t*.035;
+            var y1=H/2+Math.sin(ph)*20;
+            var y2=H/2+Math.sin(ph+Math.PI)*20;
+            var gap=Math.abs(y1-y2);
+            if(gap<16){
+                var ci=Math.abs(Math.round(i+t*.12))%baseColors.length;
+                var gr=ctx.createLinearGradient(x,y1,x,y2);
+                gr.addColorStop(0,baseColors[ci][0]); gr.addColorStop(1,baseColors[ci][1]);
+                ctx.save(); ctx.strokeStyle=gr; ctx.lineWidth=2.5; ctx.lineCap='round';
+                ctx.globalAlpha=.9;
+                ctx.beginPath(); ctx.moveTo(x,y1+2); ctx.lineTo(x,y2-2); ctx.stroke();
+                /* узлы */
+                ctx.globalAlpha=1;
+                ctx.beginPath(); ctx.arc(x,y1,4,0,Math.PI*2); ctx.fillStyle=baseColors[ci][0]; ctx.fill();
+                ctx.beginPath(); ctx.arc(x,y2,4,0,Math.PI*2); ctx.fillStyle=baseColors[ci][1]; ctx.fill();
+                ctx.restore();
+            }
+        }
+        /* нити */
+        function strand(phase,color){
+            ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=2.2;
+            ctx.lineCap='round'; ctx.lineJoin='round'; ctx.globalAlpha=.95;
+            ctx.beginPath();
+            for(var x=0;x<=W;x+=3){
+                var y=H/2+Math.sin(x*.022-t*.035+phase)*20;
+                x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+            }
+            ctx.stroke(); ctx.restore();
+        }
+        strand(0,'#00e5ff'); strand(Math.PI,'#00ff88');
+        t+=.6;
+        requestAnimationFrame(frame);
+    }
+    frame();
+})();
+</script>
+
+
+<script>
+/* ── ПЕЧАТЬ ТЕКСТА ── */
+(function(){
+    var el=document.getElementById('user-name-typed');
+    if(!el) return;
+    var text=el.getAttribute('data-text')||'';
+    var i=0; el.textContent='';
+    var iv=setInterval(function(){
+        el.textContent=text.slice(0,i)+(i<text.length?'_':'');
+        i++;
+        if(i>text.length) clearInterval(iv);
+    },55);
+})();
+
+/* ── ГОЛОГРАФИЧЕСКИЙ ГЛОБУС ── */
+(function(){
+    var cv=document.getElementById('globe-cv');
+    if(!cv) return;
+    var ctx=cv.getContext('2d');
+    var W=110,H=110,CX=55,CY=55,R=42,t=0;
+    var latLines=8,lonLines=12;
+
+    function frame(){
+        ctx.clearRect(0,0,W,H);
+
+        /* внешнее свечение */
+        var glow=ctx.createRadialGradient(CX,CY,R*.7,CX,CY,R*1.35);
+        glow.addColorStop(0,'rgba(0,229,255,.12)'); glow.addColorStop(1,'rgba(0,229,255,0)');
+        ctx.beginPath(); ctx.arc(CX,CY,R*1.35,0,Math.PI*2); ctx.fillStyle=glow; ctx.fill();
+
+        /* меридианы */
+        for(var i=0;i<lonLines;i++){
+            var phi=i/lonLines*Math.PI*2+t;
+            var pts=[];
+            for(var j=0;j<=40;j++){
+                var theta=j/40*Math.PI;
+                var x3=R*Math.sin(theta)*Math.cos(phi);
+                var y3=R*Math.cos(theta);
+                var z3=R*Math.sin(theta)*Math.sin(phi);
+                var vis=z3>-R*.1;
+                var px=CX+x3, py=CY+y3;
+                var alpha=(.15+.6*((z3+R)/(2*R)))*( vis?1:.18 );
+                pts.push({px:px,py:py,alpha:alpha,vis:vis});
+            }
+            for(var k=0;k<pts.length-1;k++){
+                ctx.beginPath(); ctx.moveTo(pts[k].px,pts[k].py); ctx.lineTo(pts[k+1].px,pts[k+1].py);
+                ctx.strokeStyle='rgba(0,229,255,'+Math.min(pts[k].alpha,pts[k+1].alpha)+')';
+                ctx.lineWidth=.6; ctx.stroke();
+            }
+        }
+
+        /* параллели */
+        for(var ii=1;ii<latLines;ii++){
+            var theta2=ii/latLines*Math.PI;
+            var y2=R*Math.cos(theta2), rLat=R*Math.sin(theta2);
+            if(rLat<1) continue;
+            var pts2=[];
+            for(var jj=0;jj<=48;jj++){
+                var phi2=jj/48*Math.PI*2+t;
+                var x2=rLat*Math.cos(phi2), z2=rLat*Math.sin(phi2);
+                var al2=.1+.55*((z2+rLat)/(2*rLat));
+                pts2.push({px:CX+x2,py:CY+y2,alpha:al2});
+            }
+            for(var kk=0;kk<pts2.length-1;kk++){
+                ctx.beginPath(); ctx.moveTo(pts2[kk].px,pts2[kk].py); ctx.lineTo(pts2[kk+1].px,pts2[kk+1].py);
+                ctx.strokeStyle='rgba(0,229,255,'+Math.min(pts2[kk].alpha,pts2[kk+1].alpha)+')';
+                ctx.lineWidth=.5; ctx.stroke();
+            }
+        }
+
+        /* центральное свечение */
+        var cg=ctx.createRadialGradient(CX-R*.2,CY-R*.2,0,CX,CY,R);
+        cg.addColorStop(0,'rgba(0,229,255,.18)'); cg.addColorStop(.5,'rgba(0,229,255,.05)'); cg.addColorStop(1,'rgba(0,229,255,0)');
+        ctx.beginPath(); ctx.arc(CX,CY,R,0,Math.PI*2); ctx.fillStyle=cg; ctx.fill();
+
+        /* пульсирующий экватор */
+        var eAlpha=.25+Math.sin(t*3)*.15;
+        ctx.beginPath(); ctx.ellipse(CX,CY,R,R*.26,0,0,Math.PI*2);
+        ctx.strokeStyle='rgba(0,255,136,'+eAlpha+')'; ctx.lineWidth=1; ctx.stroke();
+
+        /* точка на глобусе */
+        var dotPhi=t*1.5, dotTheta=Math.PI*.55;
+        var dx=R*Math.sin(dotTheta)*Math.cos(dotPhi);
+        var dy=R*Math.cos(dotTheta);
+        var dz=R*Math.sin(dotTheta)*Math.sin(dotPhi);
+        if(dz>0){
+            ctx.beginPath(); ctx.arc(CX+dx,CY+dy,3,0,Math.PI*2);
+            ctx.fillStyle='rgba(255,60,60,.9)'; ctx.fill();
+            ctx.beginPath(); ctx.arc(CX+dx,CY+dy,6+Math.sin(t*4)*2,0,Math.PI*2);
+            ctx.strokeStyle='rgba(255,60,60,.4)'; ctx.lineWidth=1; ctx.stroke();
+        }
+
+        t+=.012;
+        requestAnimationFrame(frame);
+    }
+    frame();
+})();
+
+/* ── СКАНИРОВАНИЕ ФАЙЛА ── */
+(function(){
+    var inp=document.getElementById('npz-file-input');
+    var wrap=document.getElementById('scan-bar-wrap');
+    var bar=document.getElementById('scan-bar');
+    var status=document.getElementById('scan-status');
+    if(!inp||!wrap) return;
+
+    inp.addEventListener('change',function(){
+        if(!inp.files||!inp.files[0]) return;
+        wrap.style.display='block'; status.style.display='block';
+        bar.style.width='0';
+        var progress=0;
+        var msgs=['READING DATA...','PARSING ARRAYS...','DETECTING CLASSES...','SIGNAL VERIFIED ✓'];
+        var mi=0;
+        var iv=setInterval(function(){
+            progress+=Math.random()*12+4;
+            if(progress>=100){ progress=100; clearInterval(iv);
+                status.textContent='SIGNAL VERIFIED ✓';
+                status.style.color='#00ff88';
+                setTimeout(function(){ wrap.style.display='none'; },2000);
+            } else {
+                if(progress>mi*25+20){ status.textContent=msgs[Math.min(mi,msgs.length-1)]; mi++; }
+            }
+            bar.style.width=progress+'%';
+            bar.style.transition='width .15s linear';
+        },120);
+    });
+})();
+</script>
 
 {% endblock %}

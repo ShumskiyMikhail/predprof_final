@@ -1,10 +1,105 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+@keyframes glitch-h{
+    0%{clip-path:inset(40% 0 50% 0);transform:translate(-4px,0)}
+    20%{clip-path:inset(10% 0 85% 0);transform:translate(4px,0)}
+    40%{clip-path:inset(70% 0 15% 0);transform:translate(-2px,0)}
+    60%{clip-path:inset(25% 0 60% 0);transform:translate(3px,0)}
+    80%{clip-path:inset(55% 0 30% 0);transform:translate(-3px,0)}
+    100%{clip-path:inset(40% 0 50% 0);transform:translate(0,0)}
+}
+@keyframes glitch-r{0%,100%{opacity:0} 50%{opacity:.7;transform:translate(3px,0);color:#ff0040;}}
+@keyframes glitch-b{0%,100%{opacity:0} 50%{opacity:.7;transform:translate(-3px,0);color:#00e5ff;}}
+.glitch-active::before,.glitch-active::after{
+    content:attr(data-text);position:absolute;top:0;left:0;width:100%;height:100%;
+    background:inherit;padding:inherit;border:inherit;border-radius:inherit;
+    font:inherit;color:inherit;
+}
+.glitch-active::before{animation:glitch-r .15s steps(1) infinite;}
+.glitch-active::after{animation:glitch-b .15s steps(1) infinite 0.05s;}
+.glitch-active{position:relative;animation:glitch-h .15s steps(1) infinite;}
+</style>
+
+
+
+<!-- RADAR SCAN OVERLAY -->
+<div id="radar-overlay" style="
+    display:none;position:fixed;inset:0;z-index:99998;
+    background:#000308;opacity:0;transition:opacity 0.4s;
+    overflow:hidden;
+">
+    <canvas id="radar-cv" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+    <div id="radar-status" style="
+        position:absolute;bottom:18%;left:50%;transform:translateX(-50%);
+        font-family:'Share Tech Mono',monospace;font-size:13px;
+        letter-spacing:4px;color:#00e5ff;text-align:center;
+        text-shadow:0 0 12px rgba(0,229,255,.8);
+    ">SCANNING SECTOR 7G...</div>
+    <div id="radar-coords" style="
+        position:absolute;top:20px;right:24px;
+        font-family:'Share Tech Mono',monospace;font-size:11px;
+        color:rgba(0,229,255,.5);letter-spacing:2px;line-height:1.8;text-align:right;
+    ">LAT: 44°23'N<br>LON: 122°07'E<br>ALT: 384,400 KM</div>
+    <div id="countdown-display" style="
+        position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+        font-family:'Orbitron',monospace;font-weight:900;
+        font-size:clamp(80px,15vw,160px);color:#ff2200;
+        text-shadow:0 0 60px rgba(255,34,0,.9),0 0 20px rgba(255,34,0,.5);
+        opacity:0;transition:opacity 0.2s;letter-spacing:8px;
+    ">3</div>
+</div>
+
+<!-- NUCLEAR NIBIRU OVERLAY -->
+<div id="nib-overlay" style="
+    display:none;position:fixed;inset:0;z-index:99999;
+    background:#000;flex-direction:column;
+    align-items:center;justify-content:center;
+    opacity:0;transition:opacity 0.3s ease;overflow:hidden;
+">
+    <canvas id="nib-c" style="display:block;position:absolute;inset:0;"></canvas>
+
+    <div id="nib-title" style="
+        position:relative;z-index:10;pointer-events:none;
+        font-family:'Orbitron',monospace;font-weight:900;
+        font-size:clamp(18px,3.5vw,32px);letter-spacing:8px;
+        color:#00e5ff;text-transform:uppercase;
+        text-shadow:0 0 40px rgba(0,229,255,0.8);
+        opacity:0;transition:opacity 0.5s ease;margin-bottom:24px;
+    ">NIBIRU DETECTED</div>
+
+    <div id="nib-banner" style="
+        position:relative;z-index:10;pointer-events:none;
+        opacity:0;transition:opacity 0.7s ease;text-align:center;
+    ">
+        <div style="
+            padding:22px 64px;position:relative;
+            border:1px solid rgba(0,229,255,0.6);
+            background:rgba(0,229,255,0.05);
+            clip-path:polygon(24px 0%,100% 0%,calc(100% - 24px) 100%,0% 100%);
+        ">
+            <div style="position:absolute;top:0;left:18px;width:32px;height:3px;background:#00e5ff;"></div>
+            <div style="position:absolute;bottom:0;right:18px;width:32px;height:3px;background:#00e5ff;"></div>
+            <div style="position:absolute;top:0;right:18px;width:3px;height:32px;background:rgba(0,229,255,.6);"></div>
+            <div style="position:absolute;bottom:0;left:18px;width:3px;height:32px;background:rgba(0,229,255,.6);"></div>
+            <div style="
+                font-family:'Orbitron',monospace;font-weight:900;
+                font-size:clamp(36px,7vw,88px);letter-spacing:14px;
+                color:#fff;text-transform:uppercase;line-height:1;
+                text-shadow:0 0 80px rgba(0,229,255,1),0 0 30px rgba(0,229,255,0.6),0 0 6px #fff;
+            ">ALIEN SOFTWARE</div>
+            <div style="
+                font-family:'Share Tech Mono',monospace;font-size:12px;
+                letter-spacing:6px;color:rgba(0,229,255,0.7);
+                margin-top:10px;text-transform:uppercase;
+            ">SIGNAL PROCESSOR 2226 — SYSTEM ONLINE</div>
+        </div>
+    </div>
+</div>
+
 <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
     <div class="col-md-5 col-lg-4">
-
-        <!-- Header -->
         <div class="text-center mb-4 fade-up">
             <svg width="56" height="56" viewBox="0 0 56 56" fill="none" style="margin-bottom:16px; filter: drop-shadow(0 0 16px rgba(0,229,255,0.4));">
                 <circle cx="28" cy="28" r="26" stroke="#00e5ff" stroke-width="1" opacity="0.3"/>
@@ -17,16 +112,13 @@
             <div class="mono" style="font-size:11px; color: var(--text-dim); letter-spacing:3px; margin-top:4px;">ВОЙДИТЕ В АККАУНТ</div>
         </div>
 
-        <!-- Card -->
         <div class="hud-card hud-card-cyan fade-up fade-up-1" style="padding: 2rem;">
             <div class="corner corner-tl"></div>
             <div class="corner corner-tr"></div>
             <div class="corner corner-bl"></div>
             <div class="corner corner-br"></div>
-
             <div class="section-title">Идентификация</div>
-
-            <form method="POST">
+            <form method="POST" id="login-form">
                 <div class="mb-3">
                     <label class="form-label-hud">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style="margin-right:4px">
@@ -35,7 +127,7 @@
                         </svg>
                         Логин
                     </label>
-                    <input type="text" name="username" class="form-control" placeholder="username" required autofocus>
+                    <input type="text" name="username" id="inp-user" class="form-control" placeholder="username" required autofocus>
                 </div>
                 <div class="mb-4">
                     <label class="form-label-hud">
@@ -45,7 +137,7 @@
                         </svg>
                         Пароль
                     </label>
-                    <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                    <input type="password" name="password" id="inp-pass" class="form-control" placeholder="••••••••" required>
                 </div>
                 <button type="submit" class="btn-hud btn-hud-cyan w-100" style="justify-content:center;">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -59,8 +151,713 @@
         <div class="text-center mt-3 fade-up fade-up-2">
             <span class="mono" style="font-size:10px; color: var(--text-dim);">ALIEN ANALYTICS CORP © 2226</span>
         </div>
-
     </div>
 </div>
+
+<script>
+(function(){
+var overlay=document.getElementById('nib-overlay');
+var canvas=document.getElementById('nib-c');
+var title=document.getElementById('nib-title');
+var banner=document.getElementById('nib-banner');
+var form=document.getElementById('login-form');
+var ctx,W,H,CX,CY,t=0,startMs,exploded=false;
+var stars=[],debrisList=[],sparkList=[],smokeList=[],shockList=[],mushroomPts=[];
+var shakeX=0,shakeY=0,shakePow=0;
+var flashW=0,flashO=0,mushroomLife=0,stemH=0,capR=0;
+
+function resize(){
+    W=canvas.width=window.innerWidth;
+    H=canvas.height=window.innerHeight;
+    CX=W/2; CY=H/2;
+}
+
+function init(){
+    resize();
+    ctx=canvas.getContext('2d');
+    stars=[];
+    for(var i=0;i<180;i++) stars.push({
+        x:Math.random()*W, y:Math.random()*H,
+        r:Math.random()*1.5+.2, a:Math.random()*.8+.2
+    });
+    exploded=false;debrisList=[];sparkList=[];smokeList=[];shockList=[];
+    mushroomLife=0;stemH=0;capR=0;shakePow=0;shakeX=0;shakeY=0;
+    flashW=0;flashO=0;t=0;
+}
+
+/* ── ПЛАНЕТА ── */
+function drawPlanet(R){
+    if(R<1) return;
+    ctx.save(); ctx.translate(CX+shakeX, CY+shakeY);
+    var g=ctx.createRadialGradient(-R*.3,-R*.35,R*.04, 0,0,R);
+    g.addColorStop(0,'#d04820'); g.addColorStop(.3,'#9a3010');
+    g.addColorStop(.65,'#521808'); g.addColorStop(1,'#120402');
+    ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+
+    /* полосы */
+    ctx.save(); ctx.beginPath(); ctx.arc(0,0,R-.5,0,Math.PI*2); ctx.clip();
+    var bd=[[-0.42,.11,.24],[-0.18,.09,.28],[.06,.13,.20],[.30,.08,.16]];
+    for(var b=0;b<bd.length;b++){
+        ctx.fillStyle='rgba(255,'+(60+b*18)+',10,'+bd[b][2]+')';
+        ctx.fillRect(-R, bd[b][0]*R+Math.sin(t*.45+b)*R*.02, R*2, bd[b][1]*R);
+    }
+    ctx.restore();
+
+    /* пятна */
+    for(var s=0;s<3;s++){
+        var a=t*(.36+s*.13)+s*2.1;
+        var px=Math.cos(a)*R*.33, py=Math.sin(a)*R*.15+(-R*.1+s*R*.17);
+        var sr=R*(.15-s*.03);
+        ctx.save(); ctx.beginPath(); ctx.arc(0,0,R-.5,0,Math.PI*2); ctx.clip();
+        var sg=ctx.createRadialGradient(px,py,0,px,py,sr);
+        sg.addColorStop(0,'rgba(255,'+(80+s*30)+',0,.40)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.beginPath(); ctx.arc(px,py,sr,0,Math.PI*2); ctx.fillStyle=sg; ctx.fill(); ctx.restore();
+    }
+
+    /* тень */
+    var sh=ctx.createRadialGradient(R*.55,0,R*.08, R*.55,0,R*1.05);
+    sh.addColorStop(0,'rgba(0,0,0,0)'); sh.addColorStop(.5,'rgba(0,0,0,0)'); sh.addColorStop(1,'rgba(0,0,0,.92)');
+    ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.fillStyle=sh; ctx.fill();
+
+    /* кольца */
+    ctx.save(); ctx.rotate(.4); ctx.scale(1,.26);
+    var rr=[[1.28,1.42,.42],[1.44,1.55,.25],[1.57,1.67,.33],[1.69,1.75,.16]];
+    for(var r=0;r<rr.length;r++){
+        ctx.beginPath(); ctx.arc(0,0,R*rr[r][1],0,Math.PI*2);
+        ctx.arc(0,0,R*rr[r][0],0,Math.PI*2,true);
+        ctx.fillStyle='rgba(215,80,20,'+rr[r][2]+')'; ctx.fill();
+    }
+    ctx.restore();
+
+    /* атмосферное свечение */
+    var gl=ctx.createRadialGradient(0,0,R*.88, 0,0,R*1.28);
+    gl.addColorStop(0,'rgba(255,80,15,.30)'); gl.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(0,0,R*1.28,0,Math.PI*2); ctx.fillStyle=gl; ctx.fill();
+    ctx.restore();
+}
+
+/* ── ВЗРЫВ ── */
+function spawnNuclear(R){
+    shakePow=45; flashW=1; flashO=1;
+
+    /* 3 ударные волны */
+    var wc=['#ffffff','#ffaa00','#ff4400'];
+    var ws=[28,16,8];
+    for(var w=0;w<3;w++){
+        shockList.push({x:CX,y:CY,r:R*.3,spd:ws[w],maxR:Math.max(W,H)*2.2,
+            life:1,decay:.006+w*.003,thick:10-w*2,color:wc[w]});
+    }
+
+    /* огненные шары */
+    var centers=[[0,0],[R*.4,R*.25],[R*-.45,R*.1],[R*.15,R*-.38],[R*-.25,R*-.28],[R*.5,R*-.15]];
+    for(var f=0;f<centers.length;f++){
+        var maxFR=R*(f===0?1.6:.7+Math.random()*.5);
+        debrisList.push({
+            type:'fireball',
+            x:CX+centers[f][0], y:CY+centers[f][1],
+            r:R*(f===0?.4:.15), maxR:maxFR,
+            life:1, decay:.005+f*.0015,
+            vx:(Math.random()-.5)*2, vy:-Math.random()*1.5-.5
+        });
+    }
+
+    /* раскалённые осколки */
+    for(var d=0;d<90;d++){
+        var da=Math.random()*Math.PI*2;
+        var dsp=Math.random()*18+6;
+        debrisList.push({
+            type:'chunk',
+            x:CX+(Math.random()-.5)*R*.6, y:CY+(Math.random()-.5)*R*.6,
+            vx:Math.cos(da)*dsp, vy:Math.sin(da)*dsp-Math.random()*5,
+            r:Math.random()*9+3, life:1, decay:.007+Math.random()*.007,
+            trail:[], hot:Math.random()>.25
+        });
+    }
+
+    /* искры */
+    for(var k=0;k<280;k++){
+        var ka=Math.random()*Math.PI*2;
+        var ks=Math.random()*32+10;
+        sparkList.push({
+            x:CX, y:CY,
+            vx:Math.cos(ka)*ks, vy:Math.sin(ka)*ks-Math.random()*6,
+            life:1, decay:.014+Math.random()*.016,
+            trail:[],
+            color:['#ffdd00','#ff8800','#ffffff','#ffaa44'][Math.floor(Math.random()*4)]
+        });
+    }
+
+    /* дым */
+    for(var sm=0;sm<50;sm++){
+        var sma=Math.random()*Math.PI*2;
+        smokeList.push({
+            x:CX+(Math.random()-.5)*R*.9, y:CY+(Math.random()-.5)*R*.9,
+            vx:Math.cos(sma)*(Math.random()*3+.5),
+            vy:-Math.random()*5-2,
+            r:R*(.15+Math.random()*.2),
+            life:1, decay:.003+Math.random()*.003,
+            gray:Math.floor(Math.random()*50+15)
+        });
+    }
+
+    /* ядерный гриб */
+    mushroomLife=1;
+}
+
+function drawFireball(fb){
+    fb.r=Math.min(fb.r*1.04, fb.maxR);
+    ctx.save(); ctx.globalAlpha=fb.life;
+    var fg=ctx.createRadialGradient(fb.x,fb.y,0, fb.x,fb.y,fb.r);
+    fg.addColorStop(0,'rgba(255,255,230,'+fb.life+')');
+    fg.addColorStop(.2,'rgba(255,220,60,'+fb.life*.95+')');
+    fg.addColorStop(.5,'rgba(255,80,0,'+fb.life*.85+')');
+    fg.addColorStop(.8,'rgba(180,20,0,'+fb.life*.5+')');
+    fg.addColorStop(1,'rgba(40,0,0,0)');
+    ctx.beginPath(); ctx.arc(fb.x,fb.y,fb.r,0,Math.PI*2); ctx.fillStyle=fg; ctx.fill();
+    if(fb.life>.5){
+        var fc=ctx.createRadialGradient(fb.x,fb.y,0, fb.x,fb.y,fb.r*.28);
+        fc.addColorStop(0,'rgba(255,255,255,'+fb.life*.9+')'); fc.addColorStop(1,'rgba(255,255,255,0)');
+        ctx.beginPath(); ctx.arc(fb.x,fb.y,fb.r*.28,0,Math.PI*2); ctx.fillStyle=fc; ctx.fill();
+    }
+    ctx.restore();
+    fb.x+=fb.vx; fb.y+=fb.vy; fb.life-=fb.decay;
+}
+
+function drawMushroom(){
+    if(mushroomLife<=0) return;
+    var age=1-mushroomLife;
+
+    /* Скорость роста: ножка за 1.5с, шляпка чуть позже */
+    var stemProgress=Math.min(age*2.2,1);
+    var capProgress=Math.max(0,Math.min((age-.18)*2.0,1));
+
+    var maxStemH=H*.62;
+    var maxCapR=Math.min(W*.38,320);
+    stemH=maxStemH*easeOut(stemProgress);
+    capR=maxCapR*easeOut(capProgress);
+
+    var baseX=CX, baseY=CY+Math.min(H*.22,130);
+    var stemTop=baseY-stemH;
+    var stemBaseW=Math.max(22,capR*.16);
+    var stemMidW=stemBaseW*.55;
+
+    ctx.save();
+
+    /* ── 1. СТОЛБ ОГНЯ (ножка) ── */
+    /* несколько слоёв для объёма */
+    for(var layer=3;layer>=0;layer--){
+        var lw=stemBaseW*(1+layer*.35);
+        var lAlpha=mushroomLife*([.18,.25,.35,.55][layer]);
+        var lColor=['#ff2200','#ff5500','#ff8800','#ffbb44'][layer];
+
+        /* извилистость ножки — синусоидальные изгибы */
+        var pts=[];
+        var segs=20;
+        for(var s=0;s<=segs;s++){
+            var prog=s/segs;
+            var y=baseY-stemH*prog;
+            var wobble=Math.sin(prog*Math.PI*3+t*2+layer)*(stemBaseW*.4*(1-prog));
+            var wid=lw*(1-prog*.4+Math.sin(prog*Math.PI)*.3);
+            pts.push({y:y, cx:baseX+wobble, w:wid});
+        }
+
+        ctx.save();
+        ctx.globalAlpha=lAlpha;
+        /* левый контур */
+        ctx.beginPath();
+        ctx.moveTo(pts[0].cx-pts[0].w*.5, pts[0].y);
+        for(var s2=1;s2<=segs;s2++){
+            var cp=pts[s2-1], np=pts[s2];
+            ctx.bezierCurveTo(
+                cp.cx-cp.w*.5, cp.y-(cp.y-np.y)*.5,
+                np.cx-np.w*.5, np.y+(cp.y-np.y)*.5,
+                np.cx-np.w*.5, np.y
+            );
+        }
+        /* правый контур обратно */
+        for(var s3=segs;s3>=0;s3--){
+            var np2=pts[s3];
+            var pp=s3>0?pts[s3-1]:pts[0];
+            if(s3===segs){ ctx.lineTo(np2.cx+np2.w*.5, np2.y); continue; }
+            ctx.bezierCurveTo(
+                np2.cx+np2.w*.5, np2.y+(pp.y-np2.y)*.5,
+                pp.cx+pp.w*.5, pp.y-(pp.y-np2.y)*.5,
+                pp.cx+pp.w*.5, pp.y
+            );
+        }
+        ctx.closePath();
+
+        var sg=ctx.createLinearGradient(baseX-lw,baseY, baseX+lw,stemTop);
+        sg.addColorStop(0,'rgba(255,30,0,.0)');
+        sg.addColorStop(.15,lColor);
+        sg.addColorStop(.5,'rgba(255,200,80,'+lAlpha*1.5+')');
+        sg.addColorStop(.85,lColor);
+        sg.addColorStop(1,'rgba(255,100,0,.0)');
+        ctx.fillStyle=sg; ctx.fill();
+        ctx.restore();
+    }
+
+    /* ── 2. СВЕТЯЩЕЕСЯ ЯДРО ножки ── */
+    if(stemH>20){
+        var cg=ctx.createLinearGradient(0,baseY,0,stemTop);
+        cg.addColorStop(0,'rgba(255,255,200,0)');
+        cg.addColorStop(.3,'rgba(255,255,180,'+mushroomLife*.55+')');
+        cg.addColorStop(.7,'rgba(255,220,120,'+mushroomLife*.45+')');
+        cg.addColorStop(1,'rgba(255,180,80,0)');
+        ctx.save(); ctx.globalAlpha=mushroomLife*.7;
+        ctx.fillStyle=cg;
+        var cw=stemMidW*.9;
+        ctx.beginPath();
+        ctx.ellipse(baseX,baseY,cw,3,0,0,Math.PI*2);
+        for(var cy=baseY;cy>stemTop;cy-=4){
+            var prog2=(baseY-cy)/stemH;
+            var xw=cw*(1-prog2*.5);
+            ctx.fillRect(baseX-xw,cy-4,xw*2,4);
+        }
+        ctx.restore();
+    }
+
+    if(capR<5){ ctx.restore(); mushroomLife-=.005; return; }
+
+    /* ── 3. ШЛЯПКА — многослойный тор ── */
+    var capX=baseX, capY=stemTop;
+    var capScaleY=.38+capProgress*.08; /* сплюснутость */
+
+    /* Внешнее свечение шляпки */
+    var outerGlow=ctx.createRadialGradient(capX,capY,capR*.5, capX,capY,capR*1.7);
+    outerGlow.addColorStop(0,'rgba(255,120,0,'+mushroomLife*.4+')');
+    outerGlow.addColorStop(.4,'rgba(255,60,0,'+mushroomLife*.2+')');
+    outerGlow.addColorStop(1,'rgba(255,0,0,0)');
+    ctx.save(); ctx.globalAlpha=mushroomLife*.8;
+    ctx.scale(1,capScaleY*.7);
+    ctx.beginPath(); ctx.arc(capX,capY/capScaleY*.7,capR*1.7,0,Math.PI*2);
+    ctx.fillStyle=outerGlow; ctx.fill(); ctx.restore();
+
+    /* Тело гриба — несколько концентрических колец для реализма */
+    var rings=[
+        {rInner:.0,rOuter:.28, c0:'rgba(255,255,220,MU)',c1:'rgba(255,240,100,MU)'},
+        {rInner:.22,rOuter:.55, c0:'rgba(255,200,50,MU)',c1:'rgba(255,100,0,MU)'},
+        {rInner:.48,rOuter:.78, c0:'rgba(255,80,0,MU)', c1:'rgba(200,20,0,MU)'},
+        {rInner:.72,rOuter:.98, c0:'rgba(160,10,0,MU)', c1:'rgba(80,0,0,MU)'},
+        {rInner:.92,rOuter:1.12,c0:'rgba(60,0,0,MU)',   c1:'rgba(0,0,0,0)'},
+    ];
+
+    ctx.save();
+    ctx.translate(capX,capY);
+    ctx.scale(1,capScaleY);
+
+    for(var ri=0;ri<rings.length;ri++){
+        var rg=rings[ri];
+        var rIn=capR*rg.rInner, rOut=capR*rg.rOuter;
+        var mu=mushroomLife;
+        var rgrad=ctx.createRadialGradient(0,0,rIn, 0,0,rOut);
+        rgrad.addColorStop(0,rg.c0.replace('MU',mu));
+        rgrad.addColorStop(1,rg.c1.replace('MU',mu*.8));
+        ctx.beginPath();
+        if(rIn>1){ ctx.arc(0,0,rOut,0,Math.PI*2); ctx.arc(0,0,rIn,0,Math.PI*2,true); }
+        else ctx.arc(0,0,rOut,0,Math.PI*2);
+        ctx.fillStyle=rgrad; ctx.fill();
+    }
+
+    /* Турбулентные завихрения на шляпке */
+    for(var curl=0;curl<8;curl++){
+        var cang=curl/8*Math.PI*2+t*.3;
+        var cr=capR*(.45+Math.sin(curl*.7+t*.5)*.25);
+        var cx2=Math.cos(cang)*cr, cy2=Math.sin(cang)*cr;
+        var cSize=capR*(.08+Math.random()*.04);
+        var cAlpha=mushroomLife*(.15+Math.sin(curl+t)*.08);
+        ctx.save(); ctx.globalAlpha=Math.max(0,cAlpha);
+        var cg2=ctx.createRadialGradient(cx2,cy2,0, cx2,cy2,cSize);
+        cg2.addColorStop(0,'rgba(255,200,80,.8)'); cg2.addColorStop(1,'rgba(255,80,0,0)');
+        ctx.beginPath(); ctx.arc(cx2,cy2,cSize,0,Math.PI*2); ctx.fillStyle=cg2; ctx.fill(); ctx.restore();
+    }
+
+    /* Нижний край гриба — загнутые «поля» */
+    var rimG=ctx.createRadialGradient(0,0,capR*.7, 0,0,capR*1.05);
+    rimG.addColorStop(0,'rgba(255,60,0,0)');
+    rimG.addColorStop(.6,'rgba(200,30,0,'+mushroomLife*.5+')');
+    rimG.addColorStop(1,'rgba(100,0,0,0)');
+    ctx.beginPath(); ctx.arc(0,0,capR*1.05,0,Math.PI*2); ctx.arc(0,0,capR*.7,0,Math.PI*2,true);
+    ctx.fillStyle=rimG; ctx.fill();
+
+    ctx.restore(); /* scale(1,capScaleY) */
+
+    /* ── 4. ДЫМОВОЙ ВОРОТНИК у основания шляпки ── */
+    var collarR=capR*.55;
+    for(var cl=0;cl<3;cl++){
+        var clr=collarR*(1+cl*.2);
+        var clAlpha=mushroomLife*(.25-cl*.07);
+        ctx.save(); ctx.globalAlpha=Math.max(0,clAlpha);
+        ctx.scale(1,.22);
+        var clG=ctx.createRadialGradient(capX,capY/.22,clr*.5, capX,capY/.22,clr);
+        clG.addColorStop(0,'rgba(160,80,20,.7)'); clG.addColorStop(1,'rgba(80,20,0,0)');
+        ctx.beginPath(); ctx.arc(capX,capY/.22,clr,0,Math.PI*2);
+        ctx.arc(capX,capY/.22,clr*.5,0,Math.PI*2,true);
+        ctx.fillStyle=clG; ctx.fill(); ctx.restore();
+    }
+
+    ctx.restore();
+    mushroomLife-=.005;
+}
+
+function easeOut(t){ return 1-Math.pow(1-t,2.5); }
+
+function drawShockwaves(){
+    for(var w=shockList.length-1;w>=0;w--){
+        var sw=shockList[w];
+        ctx.save(); ctx.globalAlpha=sw.life*.9;
+        ctx.beginPath(); ctx.arc(sw.x,sw.y,sw.r,0,Math.PI*2);
+        ctx.strokeStyle=sw.color; ctx.lineWidth=sw.thick*sw.life; ctx.stroke();
+        if(sw.r<600){
+            var wg=ctx.createRadialGradient(sw.x,sw.y,sw.r*.82, sw.x,sw.y,sw.r*1.18);
+            wg.addColorStop(0,'rgba(255,200,80,0)');
+            wg.addColorStop(.5,'rgba(255,150,40,'+sw.life*.45+')');
+            wg.addColorStop(1,'rgba(255,80,0,0)');
+            ctx.beginPath(); ctx.arc(sw.x,sw.y,sw.r*1.18,0,Math.PI*2); ctx.fillStyle=wg; ctx.fill();
+        }
+        ctx.restore();
+        sw.r+=sw.spd; sw.spd*=.97; sw.life-=sw.decay;
+        if(sw.life<=0) shockList.splice(w,1);
+    }
+}
+
+function drawDebris(){
+    for(var d=debrisList.length-1;d>=0;d--){
+        var db=debrisList[d];
+        if(db.type==='fireball'){ drawFireball(db); if(db.life<=0) debrisList.splice(d,1); continue; }
+        db.trail.push({x:db.x,y:db.y});
+        if(db.trail.length>14) db.trail.shift();
+        for(var k=0;k<db.trail.length-1;k++){
+            ctx.save(); ctx.globalAlpha=db.life*(k/db.trail.length)*.75;
+            ctx.beginPath(); ctx.arc(db.trail[k].x,db.trail[k].y,db.r*(k/db.trail.length)*.7+.5,0,Math.PI*2);
+            ctx.fillStyle=db.hot?'#ff7700':'#993300'; ctx.fill(); ctx.restore();
+        }
+        ctx.save(); ctx.globalAlpha=db.life;
+        var dg=ctx.createRadialGradient(db.x,db.y,0, db.x,db.y,db.r);
+        dg.addColorStop(0,'#fff8cc'); dg.addColorStop(.4,'#ff8800'); dg.addColorStop(1,'#441100');
+        ctx.beginPath(); ctx.arc(db.x,db.y,db.r,0,Math.PI*2); ctx.fillStyle=dg; ctx.fill();
+        ctx.restore();
+        db.x+=db.vx; db.y+=db.vy; db.vy+=.22; db.vx*=.99; db.life-=db.decay;
+        if(db.life<=0) debrisList.splice(d,1);
+    }
+}
+
+function drawSparks(){
+    for(var sp=sparkList.length-1;sp>=0;sp--){
+        var pk=sparkList[sp];
+        pk.trail.push({x:pk.x,y:pk.y});
+        if(pk.trail.length>18) pk.trail.shift();
+        if(pk.trail.length>1){
+            ctx.save(); ctx.globalAlpha=pk.life*.85;
+            ctx.strokeStyle=pk.color; ctx.lineWidth=1.8; ctx.lineCap='round';
+            ctx.beginPath(); ctx.moveTo(pk.trail[0].x,pk.trail[0].y);
+            for(var tl=1;tl<pk.trail.length;tl++) ctx.lineTo(pk.trail[tl].x,pk.trail[tl].y);
+            ctx.stroke(); ctx.restore();
+        }
+        ctx.save(); ctx.globalAlpha=pk.life;
+        ctx.beginPath(); ctx.arc(pk.x,pk.y,2,0,Math.PI*2); ctx.fillStyle='#ffffff'; ctx.fill(); ctx.restore();
+        pk.x+=pk.vx; pk.y+=pk.vy; pk.vy+=.14; pk.vx*=.98; pk.life-=pk.decay;
+        if(pk.life<=0) sparkList.splice(sp,1);
+    }
+}
+
+function drawSmoke(){
+    for(var s=smokeList.length-1;s>=0;s--){
+        var sm=smokeList[s];
+        ctx.save(); ctx.globalAlpha=sm.life*.55;
+        var sg=ctx.createRadialGradient(sm.x,sm.y,0, sm.x,sm.y,sm.r);
+        sg.addColorStop(0,'rgba('+sm.gray+','+sm.gray+','+(sm.gray+8)+',.75)');
+        sg.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.beginPath(); ctx.arc(sm.x,sm.y,sm.r,0,Math.PI*2); ctx.fillStyle=sg; ctx.fill(); ctx.restore();
+        sm.x+=sm.vx; sm.y+=sm.vy; sm.vx*=.99; sm.r*=1.014; sm.life-=sm.decay;
+        if(sm.life<=0) smokeList.splice(s,1);
+    }
+}
+
+/* ── ГЛАВНЫЙ ЦИКЛ ── */
+var APPEAR=1800, EXPLODE=2200, AFTER=4000, TOTAL=5600;
+
+function frame(now){
+    var el=now-startMs;
+    if(shakePow>.15){ shakeX=(Math.random()-.5)*shakePow; shakeY=(Math.random()-.5)*shakePow; shakePow*=.85; }
+    else{ shakeX=0; shakeY=0; }
+
+    canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+    W=canvas.width; H=canvas.height; CX=W/2; CY=H/2;
+
+    ctx.fillStyle='#000308'; ctx.fillRect(0,0,W,H);
+    if(gravStars){
+        var gStr=el<APPEAR?0.04:(el<EXPLODE?0.12:0.01);
+        drawGravStars(CX+shakeX,CY+shakeY,gStr);
+    } else {
+        for(var i=0;i<stars.length;i++){
+            ctx.beginPath(); ctx.arc(stars[i].x,stars[i].y,stars[i].r,0,Math.PI*2);
+            ctx.fillStyle='rgba(255,255,255,'+stars[i].a+')'; ctx.fill();
+        }
+    }
+
+    ctx.save();
+    if(shakePow>1) ctx.translate(shakeX,shakeY);
+
+    var maxR=Math.min(W,H)*.28;
+    if(el<APPEAR){
+        var p=el/APPEAR, e2=p<.5?2*p*p:-1+(4-2*p)*p;
+        drawPlanet(maxR*e2);
+    } else if(el<EXPLODE){
+        drawPlanet(maxR*(1+Math.sin((el-APPEAR)/50)*.02));
+    } else {
+        if(!exploded){ exploded=true; spawnNuclear(maxR); }
+        var fa=el-EXPLODE;
+        /* мгновенная белая вспышка */
+        if(flashW>0){ ctx.save(); ctx.globalAlpha=flashW; ctx.fillStyle='#ffffff'; ctx.fillRect(-60,-60,W+120,H+120); ctx.restore(); flashW=Math.max(0,flashW-.08); }
+        /* оранжевое зарево */
+        if(flashO>0){ ctx.save(); ctx.globalAlpha=flashO*.65; ctx.fillStyle='#ff4400'; ctx.fillRect(-60,-60,W+120,H+120); ctx.restore(); flashO=Math.max(0,flashO-.012); }
+
+        drawShockwaves();
+        drawDebris();
+        drawSparks();
+        drawSmoke();
+        drawMushroom();
+
+        /* радиационное свечение от земли */
+        if(fa>200&&fa<3000){
+            var rg=ctx.createRadialGradient(CX,H,0, CX,H,W*.7);
+            var ri=Math.max(0,(.6-(fa-200)/2800)*.5);
+            rg.addColorStop(0,'rgba(255,160,0,'+ri+')'); rg.addColorStop(1,'rgba(255,60,0,0)');
+            ctx.beginPath(); ctx.arc(CX,H,W*.7,0,Math.PI*2); ctx.fillStyle=rg; ctx.fill();
+        }
+    }
+    ctx.restore();
+
+    t+=.022;
+    if(el>=900&&el<EXPLODE) title.style.opacity='1';
+    else if(el>=EXPLODE) title.style.opacity='0';
+    if(el>=AFTER) banner.style.opacity='1';
+
+    if(el<TOTAL) requestAnimationFrame(frame);
+    else{
+        overlay.style.opacity='0';
+        setTimeout(function(){
+            overlay.style.display='none';
+            var f=document.createElement('form');
+            f.method='POST'; f.action=window.location.pathname;
+            var u=document.createElement('input'); u.type='hidden'; u.name='username'; u.value=document.getElementById('inp-user').value;
+            var p2=document.createElement('input'); p2.type='hidden'; p2.name='password'; p2.value=document.getElementById('inp-pass').value;
+            f.appendChild(u); f.appendChild(p2); document.body.appendChild(f); f.submit();
+        },500);
+    }
+}
+
+
+
+/* ═══════════════════════════════════════════════
+   RADAR SCAN + COUNTDOWN + GLITCH + WEB AUDIO
+   ═══════════════════════════════════════════════ */
+
+/* Web Audio — нарастающий гул */
+function playDetonationSound(){
+    try{
+        var ac=new (window.AudioContext||window.webkitAudioContext)();
+        /* низкий гул */
+        var osc=ac.createOscillator();
+        var gain=ac.createGain();
+        osc.type='sawtooth'; osc.frequency.setValueAtTime(40,ac.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(180,ac.currentTime+2.0);
+        gain.gain.setValueAtTime(0,ac.currentTime);
+        gain.gain.linearRampToValueAtTime(.35,ac.currentTime+.3);
+        gain.gain.linearRampToValueAtTime(.6,ac.currentTime+1.8);
+        gain.gain.linearRampToValueAtTime(0,ac.currentTime+2.2);
+        osc.connect(gain); gain.connect(ac.destination);
+        osc.start(); osc.stop(ac.currentTime+2.3);
+        /* удар */
+        setTimeout(function(){
+            var o2=ac.createOscillator(), g2=ac.createGain();
+            o2.type='sine'; o2.frequency.setValueAtTime(60,ac.currentTime);
+            o2.frequency.exponentialRampToValueAtTime(20,ac.currentTime+.5);
+            g2.gain.setValueAtTime(.8,ac.currentTime);
+            g2.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.6);
+            o2.connect(g2); g2.connect(ac.destination);
+            o2.start(); o2.stop(ac.currentTime+.6);
+        },2000);
+    }catch(e){}
+}
+
+/* Радарный экран */
+function runRadar(onDone){
+    var ro=document.getElementById('radar-overlay');
+    var rc=document.getElementById('radar-cv');
+    var rs=document.getElementById('radar-status');
+    var cd=document.getElementById('countdown-display');
+    ro.style.display='block';
+    requestAnimationFrame(function(){ ro.style.opacity='1'; });
+
+    var ctx2=rc.getContext('2d');
+    var W2,H2,CX2,CY2,angle=0,blips=[];
+    function resizeR(){ W2=rc.width=window.innerWidth; H2=rc.height=window.innerHeight; CX2=W2/2; CY2=H2/2; }
+    resizeR();
+
+    var R2=Math.min(W2,H2)*.38;
+    var radarStart=performance.now();
+    var SCAN_DUR=2200, detected=false, detectedAt=0;
+
+    /* Звёздное поле за радаром */
+    var rStars=[];
+    for(var i=0;i<120;i++) rStars.push({x:Math.random()*W2,y:Math.random()*H2,r:Math.random()*1.2+.2,a:Math.random()*.6+.2});
+
+    function radarFrame(now){
+        var el=now-radarStart;
+        resizeR(); R2=Math.min(W2,H2)*.38;
+        ctx2.fillStyle='rgba(0,3,8,.92)'; ctx2.fillRect(0,0,W2,H2);
+
+        /* звёзды */
+        rStars.forEach(function(s){
+            ctx2.beginPath(); ctx2.arc(s.x,s.y,s.r,0,Math.PI*2);
+            ctx2.fillStyle='rgba(255,255,255,'+s.a+')'; ctx2.fill();
+        });
+
+        /* концентрические кольца */
+        for(var ri=1;ri<=4;ri++){
+            ctx2.beginPath(); ctx2.arc(CX2,CY2,R2*ri/4,0,Math.PI*2);
+            ctx2.strokeStyle='rgba(0,229,255,.12)'; ctx2.lineWidth=.8; ctx2.stroke();
+        }
+        /* крест */
+        ctx2.strokeStyle='rgba(0,229,255,.1)'; ctx2.lineWidth=.6;
+        ctx2.beginPath(); ctx2.moveTo(CX2-R2,CY2); ctx2.lineTo(CX2+R2,CY2); ctx2.stroke();
+        ctx2.beginPath(); ctx2.moveTo(CX2,CY2-R2); ctx2.lineTo(CX2,CY2+R2); ctx2.stroke();
+
+        /* ЛУЧ */
+        ctx2.save();
+        ctx2.translate(CX2,CY2);
+        ctx2.rotate(angle);
+        /* шлейф */
+        for(var sw=0;sw<48;sw++){
+            var sa=-(sw/48)*Math.PI*.85;
+            ctx2.save(); ctx2.rotate(sa);
+            var sg=ctx2.createLinearGradient(0,0,R2,0);
+            sg.addColorStop(0,'rgba(0,229,255,'+((.18-sw/48*.18))+')');
+            sg.addColorStop(1,'rgba(0,229,255,0)');
+            ctx2.strokeStyle=sg; ctx2.lineWidth=R2*.025*(1-sw/48);
+            ctx2.lineCap='round';
+            ctx2.beginPath(); ctx2.moveTo(4,0); ctx2.lineTo(R2,0); ctx2.stroke();
+            ctx2.restore();
+        }
+        /* основной луч */
+        var rg=ctx2.createLinearGradient(0,0,R2,0);
+        rg.addColorStop(0,'rgba(0,229,255,.9)'); rg.addColorStop(1,'rgba(0,229,255,.05)');
+        ctx2.strokeStyle=rg; ctx2.lineWidth=2.5;
+        ctx2.beginPath(); ctx2.moveTo(0,0); ctx2.lineTo(R2,0); ctx2.stroke();
+        ctx2.restore();
+
+        angle+=.045;
+
+        /* обнаружение */
+        if(!detected && el>900){
+            detected=true; detectedAt=now;
+            blips.push({x:CX2+R2*.18,y:CY2-R2*.22,life:1,size:8});
+            rs.textContent='OBJECT DETECTED — CLASSIFICATION: UNKNOWN';
+            rs.style.color='#ff4444';
+            rs.style.textShadow='0 0 16px rgba(255,68,68,.9)';
+        }
+
+        /* блипы */
+        blips.forEach(function(b){
+            ctx2.save(); ctx2.globalAlpha=b.life;
+            ctx2.beginPath(); ctx2.arc(b.x,b.y,b.size*(2-b.life),0,Math.PI*2);
+            ctx2.strokeStyle='#ff4444'; ctx2.lineWidth=2; ctx2.stroke();
+            ctx2.beginPath(); ctx2.arc(b.x,b.y,4,0,Math.PI*2);
+            ctx2.fillStyle='#ff4444'; ctx2.fill();
+            ctx2.restore();
+            b.life-=.008;
+        });
+
+        /* обратный отсчёт */
+        if(detected){
+            var sinceDetect=now-detectedAt;
+            if(sinceDetect<300){ cd.style.opacity='1'; cd.textContent='3'; cd.style.color='#ff2200'; }
+            else if(sinceDetect<700){ cd.textContent='2'; }
+            else if(sinceDetect<1100){ cd.textContent='1'; }
+            else if(sinceDetect<1400){ cd.textContent='0'; cd.style.color='#ffffff'; }
+            else { cd.style.opacity='0'; }
+        }
+
+        if(el < SCAN_DUR+1400){
+            requestAnimationFrame(radarFrame);
+        } else {
+            ro.style.opacity='0';
+            setTimeout(function(){ ro.style.display='none'; onDone(); },400);
+        }
+    }
+    requestAnimationFrame(radarFrame);
+}
+
+/* Глитч на полях ввода */
+function triggerGlitch(){
+    var card=document.querySelector('.hud-card');
+    if(!card) return;
+    var orig=card.innerHTML;
+    var glitchCount=0;
+    var iv=setInterval(function(){
+        card.style.transform='translate('+(Math.random()*6-3)+'px,'+(Math.random()*4-2)+'px)';
+        card.style.filter='hue-rotate('+(Math.random()*30)+'deg) saturate(2)';
+        var lines=document.querySelectorAll('.form-control');
+        lines.forEach(function(el){ el.style.borderColor=Math.random()>.5?'#ff2200':'#00e5ff'; });
+        glitchCount++;
+        if(glitchCount>8){
+            clearInterval(iv);
+            card.style.transform=''; card.style.filter='';
+            lines.forEach(function(el){ el.style.borderColor=''; });
+        }
+    },60);
+}
+
+/* Притяжение звёзд к Нибиру */
+var gravStars=null;
+function initGravStars(){
+    gravStars=[];
+    for(var i=0;i<200;i++) gravStars.push({
+        x:Math.random()*window.innerWidth,
+        y:Math.random()*window.innerHeight,
+        vx:0,vy:0,
+        r:Math.random()*1.4+.2,a:Math.random()*.7+.3
+    });
+}
+function drawGravStars(cx,cy,strength){
+    if(!gravStars) return;
+    gravStars.forEach(function(s){
+        var dx=cx-s.x, dy=cy-s.y;
+        var dist=Math.sqrt(dx*dx+dy*dy)+1;
+        s.vx+=dx/dist*strength; s.vy+=dy/dist*strength;
+        s.vx*=.96; s.vy*=.96;
+        s.x+=s.vx; s.y+=s.vy;
+        ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+        ctx.fillStyle='rgba(255,255,255,'+s.a+')'; ctx.fill();
+    });
+}
+
+/* Перехватываем submit — сначала радар, потом глитч, потом нибиру */
+form.removeEventListener('submit',form._nibHandler);
+form.addEventListener('submit', form._nibHandler=function(e){
+    e.preventDefault();
+    triggerGlitch();
+    setTimeout(function(){
+        runRadar(function(){
+            playDetonationSound();
+            init(); initGravStars();
+            exploded=false;debrisList=[];sparkList=[];smokeList=[];shockList=[];
+            mushroomLife=0;stemH=0;capR=0;shakePow=0;shakeX=0;shakeY=0;
+            flashW=0;flashO=0;t=0;
+            title.style.opacity='0'; banner.style.opacity='0';
+            overlay.style.display='flex';
+            requestAnimationFrame(function(){
+                overlay.style.opacity='1';
+                startMs=performance.now();
+                requestAnimationFrame(frame);
+            });
+        });
+    },400);
+});
+
+})();
+</script>
 
 {% endblock %}
