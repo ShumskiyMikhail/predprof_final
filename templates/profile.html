@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row g-4">
+
+    <!-- ── ПРОФИЛЬ ────────────────────────────────────────────── -->
+    <div class="col-lg-4">
+        <div class="hud-card hud-card-cyan fade-up" style="padding: 1.75rem; height:100%;">
+            <div class="corner corner-tl"></div>
+            <div class="corner corner-tr"></div>
+            <div class="corner corner-bl"></div>
+            <div class="corner corner-br"></div>
+
+            <div class="section-title">Досье сотрудника</div>
+
+            <!-- Avatar -->
+            <div class="text-center mb-4">
+                <div style="
+                    width:80px; height:80px; border-radius:50%;
+                    border: 1px solid rgba(0,229,255,0.3);
+                    background: radial-gradient(circle at 40% 35%, rgba(0,229,255,0.12), rgba(0,229,255,0.02));
+                    display:flex; align-items:center; justify-content:center;
+                    margin: 0 auto 12px;
+                    box-shadow: 0 0 30px rgba(0,229,255,0.1);
+                ">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+                        <circle cx="12" cy="7" r="4" stroke="#00e5ff" stroke-width="1.5" opacity="0.7"/>
+                    </svg>
+                </div>
+                <div class="orbitron" style="font-size:1rem; font-weight:700; color:#fff; letter-spacing:2px;">
+                    {{ user.first_name | upper }} {{ user.last_name | upper }}
+                </div>
+                <div class="mt-2">
+                    {% if user.role == 'admin' %}
+                        <span class="badge-hud badge-admin">ADMINISTRATOR</span>
+                    {% else %}
+                        <span class="badge-hud badge-user">OPERATOR</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Info rows -->
+            <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
+                <div class="d-flex justify-content-between align-items-center mb-2" style="padding: 6px 0; border-bottom: 1px solid rgba(13,42,69,0.6);">
+                    <span class="mono" style="font-size:10px; color: var(--text-dim); letter-spacing:1px;">ИМЯ</span>
+                    <span class="mono" style="font-size:13px; color: var(--text);">{{ user.first_name }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2" style="padding: 6px 0; border-bottom: 1px solid rgba(13,42,69,0.6);">
+                    <span class="mono" style="font-size:10px; color: var(--text-dim); letter-spacing:1px;">ФАМИЛИЯ</span>
+                    <span class="mono" style="font-size:13px; color: var(--text);">{{ user.last_name }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2" style="padding: 6px 0; border-bottom: 1px solid rgba(13,42,69,0.6);">
+                    <span class="mono" style="font-size:10px; color: var(--text-dim); letter-spacing:1px;">ЛОГИН</span>
+                    <span class="mono" style="font-size:13px; color: var(--cyan);">{{ user.username }}</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center" style="padding: 6px 0;">
+                    <span class="mono" style="font-size:10px; color: var(--text-dim); letter-spacing:1px;">УРОВЕНЬ</span>
+                    <span class="mono" style="font-size:13px; color:
+                        {% if user.role == 'admin' %}#b47fff{% else %}var(--cyan){% endif %};">
+                        {{ user.role | upper }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── ПРАВАЯ ПАНЕЛЬ ──────────────────────────────────────── -->
+    <div class="col-lg-8">
+
+        {% if user.role == 'admin' %}
+        <!-- ADMIN PANEL -->
+        <div class="hud-card hud-card-purple fade-up fade-up-1" style="padding: 1.75rem;">
+            <div class="corner corner-tl" style="border-color: #7b2fff;"></div>
+            <div class="corner corner-tr" style="border-color: #7b2fff;"></div>
+            <div class="corner corner-bl" style="border-color: #7b2fff;"></div>
+            <div class="corner corner-br" style="border-color: #7b2fff;"></div>
+
+            <div class="section-title" style="color: #9a5fff;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="margin-right:6px">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="#9a5fff" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="9" cy="7" r="4" stroke="#9a5fff" stroke-width="2"/>
+                    <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#9a5fff" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                Регистрация нового сотрудника
+            </div>
+
+            <form action="{{ url_for('create_user') }}" method="POST">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-hud">Имя</label>
+                        <input type="text" name="first_name" class="form-control" placeholder="Имя" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-hud">Фамилия</label>
+                        <input type="text" name="last_name" class="form-control" placeholder="Фамилия" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-hud">Логин</label>
+                        <input type="text" name="username" class="form-control" placeholder="username" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-hud">Пароль</label>
+                        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn-hud w-100" style="
+                        justify-content:center;
+                        background: rgba(123,47,255,0.12);
+                        border: 1px solid rgba(123,47,255,0.45);
+                        color: #b47fff;
+                        box-shadow: 0 0 20px rgba(123,47,255,0.1);
+                        font-family: 'Orbitron', monospace;
+                        font-size: 10px;
+                        font-weight: 700;
+                        letter-spacing: 2px;
+                        text-transform: uppercase;
+                        border-radius: 3px;
+                        padding: 10px 28px;
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        cursor: pointer;
+                        transition: all 0.25s;
+                    ">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                        </svg>
+                        Создать аккаунт
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {% else %}
+        <!-- USER PANEL -->
+        <div class="hud-card hud-card-green fade-up fade-up-1" style="padding: 1.75rem;">
+            <div class="corner corner-tl" style="border-color: #00ff88;"></div>
+            <div class="corner corner-tr" style="border-color: #00ff88;"></div>
+            <div class="corner corner-bl" style="border-color: #00ff88;"></div>
+            <div class="corner corner-br" style="border-color: #00ff88;"></div>
+
+            <div class="section-title" style="color: #00cc6a;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="margin-right:6px">
+                    <path d="M22 16.92v3a2 2 0 01-2.18 2A19.79 19.79 0 012.1 5.18 2 2 0 014.11 3h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 10.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 17.92z" stroke="#00ff88" stroke-width="1.5" opacity="0.7"/>
+                </svg>
+                Анализ внеземных сигналов
+            </div>
+
+            <!-- Icon -->
+            <div class="text-center my-4">
+                <svg width="72" height="72" viewBox="0 0 72 72" fill="none" style="filter: drop-shadow(0 0 20px rgba(0,255,136,0.25));">
+                    <circle cx="36" cy="36" r="34" stroke="#00ff88" stroke-width="0.8" opacity="0.2"/>
+                    <circle cx="36" cy="36" r="24" stroke="#00ff88" stroke-width="0.8" opacity="0.35"/>
+                    <circle cx="36" cy="36" r="14" stroke="#00ff88" stroke-width="1" opacity="0.5"/>
+                    <circle cx="36" cy="36" r="5" fill="#00ff88" opacity="0.8"/>
+                    <!-- Signal waves -->
+                    <path d="M22 20 Q28 14 36 14 Q44 14 50 20" stroke="#00ff88" stroke-width="1.2" fill="none" opacity="0.4" stroke-linecap="round"/>
+                    <path d="M16 14 Q26 4 36 4 Q46 4 56 14" stroke="#00ff88" stroke-width="0.8" fill="none" opacity="0.2" stroke-linecap="round"/>
+                    <!-- Dish base -->
+                    <path d="M30 52 L36 44 L42 52" stroke="#00ff88" stroke-width="1.2" fill="none" opacity="0.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M26 56h20" stroke="#00ff88" stroke-width="1.2" opacity="0.4" stroke-linecap="round"/>
+                </svg>
+                <div class="orbitron mt-3" style="font-size:0.85rem; font-weight:700; color: var(--green); letter-spacing:2px;">
+                    ЗАГРУЗКА ТЕСТОВОГО НАБОРА
+                </div>
+                <p class="mono mt-2" style="font-size:12px; color: var(--text-dim);">
+                    Выберите файл <span style="color: var(--cyan);">.npz</span> для классификации цивилизаций
+                </p>
+            </div>
+
+            <form action="{{ url_for('upload_test') }}" method="POST" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label class="form-label-hud">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style="margin-right:4px">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="#4a6a80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Файл набора данных (.npz)
+                    </label>
+                    <input type="file" name="test_file" class="form-control" accept=".npz" required>
+                    <div class="mono mt-2" style="font-size:10px; color: var(--text-dim); line-height:1.6;">
+                        Обязательно: <span style="color: var(--cyan);">test_y</span> / <span style="color: var(--cyan);">valid_y</span>
+<!--                        Опционально: <span style="color:var(&#45;&#45;text-dim)">train_y, val_acc, test_preds</span>-->
+                    </div>
+                </div>
+                <button type="submit" class="btn-hud btn-hud-green w-100" style="justify-content:center;">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+                        <polygon points="5,3 19,12 5,21" fill="currentColor"/>
+                    </svg>
+                    Запустить классификацию
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}

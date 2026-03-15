@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block content %}
+
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<!-- ── ЗАГОЛОВОК СТРАНИЦЫ ────────────────────────────────────── -->
+<div class="d-flex align-items-center gap-3 mb-4 fade-up">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style="filter: drop-shadow(0 0 8px rgba(0,229,255,0.5));">
+        <circle cx="14" cy="14" r="12" stroke="#00e5ff" stroke-width="1" opacity="0.3"/>
+        <circle cx="14" cy="14" r="7" stroke="#00e5ff" stroke-width="1" opacity="0.5"/>
+        <circle cx="14" cy="14" r="3" fill="#00e5ff"/>
+        <path d="M14 2v4M14 22v4M2 14h4M22 14h4" stroke="#00e5ff" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+    </svg>
+    <div>
+        <div class="orbitron" style="font-size:1rem; font-weight:700; color:#fff; letter-spacing:3px;">ОТЧЁТ КЛАССИФИКАЦИИ</div>
+        <div class="mono" style="font-size:10px; color: var(--text-dim); letter-spacing:2px;">SIGNAL ANALYSIS — РЕЗУЛЬТАТЫ ОБРАБОТКИ</div>
+    </div>
+</div>
+
+<!-- ── МЕТРИКИ ───────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+
+    <div class="col-md-4 fade-up fade-up-1">
+        <div class="hud-card hud-card-cyan" style="padding: 1.25rem 1.5rem;">
+            <div class="corner corner-tl"></div>
+            <div class="corner corner-br"></div>
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:40px; height:40px; border-radius:50%; background: rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+                        <polyline points="22,4 12,14.01 9,11.01" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="mono" style="font-size:9px; color: var(--text-dim); letter-spacing:2px; text-transform:uppercase;">Точность</div>
+                    <div class="orbitron" style="font-size:1.6rem; font-weight:900; color: var(--cyan); line-height:1.1;">{{ (acc * 100)|round(2) }}<span style="font-size:0.8rem; font-weight:400; margin-left:2px;">%</span></div>
+                    <div class="mono" style="font-size:9px; color: var(--text-dim);">на тестовом наборе</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 fade-up fade-up-2">
+        <div class="hud-card hud-card-red" style="padding: 1.25rem 1.5rem;">
+            <div class="corner corner-tl" style="border-color: var(--red);"></div>
+            <div class="corner corner-br" style="border-color: var(--red);"></div>
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:40px; height:40px; border-radius:50%; background: rgba(255,45,85,0.1); border:1px solid rgba(255,45,85,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="#ff2d55" stroke-width="1.8"/>
+                        <line x1="12" y1="9" x2="12" y2="13" stroke="#ff2d55" stroke-width="2" stroke-linecap="round"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17" stroke="#ff2d55" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="mono" style="font-size:9px; color: var(--text-dim); letter-spacing:2px; text-transform:uppercase;">Потери</div>
+                    <div class="orbitron" style="font-size:1.6rem; font-weight:900; color: var(--red); line-height:1.1;">{{ loss }}</div>
+                    <div class="mono" style="font-size:9px; color: var(--text-dim);">кросс-энтропия</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 fade-up fade-up-3">
+        <div class="hud-card hud-card-yellow" style="padding: 1.25rem 1.5rem;">
+            <div class="corner corner-tl" style="border-color: var(--yellow);"></div>
+            <div class="corner corner-br" style="border-color: var(--yellow);"></div>
+            <div class="d-flex align-items-center gap-3">
+                <div style="width:40px; height:40px; border-radius:50%; background: rgba(255,214,10,0.1); border:1px solid rgba(255,214,10,0.25); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z" stroke="#ffd60a" stroke-width="1.6" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="mono" style="font-size:9px; color: var(--text-dim); letter-spacing:2px; text-transform:uppercase;">Сигналов</div>
+                    <div class="orbitron" style="font-size:1.6rem; font-weight:900; color: var(--yellow); line-height:1.1;">{{ count }}</div>
+                    <div class="mono" style="font-size:9px; color: var(--text-dim);">записей в тестовом наборе</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hint -->
+<div class="mono mb-4 fade-up" style="font-size:11px; color: var(--text-dim); text-align:center; letter-spacing:1px; background: rgba(0,229,255,0.03); border: 1px solid var(--border); border-radius:3px; padding:8px;">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="margin-right:6px; vertical-align:middle">
+        <circle cx="11" cy="11" r="8" stroke="#4a6a80" stroke-width="2"/>
+        <path d="M21 21l-4.35-4.35" stroke="#4a6a80" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    МАСШТАБИРОВАНИЕ: выделите область мышью · двойной клик — сброс · колёсико — скролл
+</div>
+
+<!-- ── ГРАФИКИ 2×2 ────────────────────────────────────────────── -->
+<div class="row g-3">
+
+    <div class="col-md-6 fade-up fade-up-1">
+        <div class="hud-card" style="padding: 0.75rem;">
+            <div class="mono px-2 pt-1 pb-2" style="font-size:10px; color: var(--text-dim); letter-spacing:1.5px; text-transform:uppercase; border-bottom: 1px solid var(--border); margin-bottom:4px;">
+                Точность по эпохам обучения
+            </div>
+            <div class="plotly-chart-wrapper">{{ plots.epochs | safe }}</div>
+        </div>
+    </div>
+
+    <div class="col-md-6 fade-up fade-up-2">
+        <div class="hud-card" style="padding: 0.75rem;">
+            <div class="mono px-2 pt-1 pb-2" style="font-size:10px; color: var(--text-dim); letter-spacing:1.5px; text-transform:uppercase; border-bottom: 1px solid var(--border); margin-bottom:4px;">
+                Классы в обучающей выборке
+            </div>
+            <div class="plotly-chart-wrapper">{{ plots.dist | safe }}</div>
+        </div>
+    </div>
+
+    <div class="col-md-6 fade-up fade-up-3">
+        <div class="hud-card" style="padding: 0.75rem;">
+            <div class="mono px-2 pt-1 pb-2" style="font-size:10px; color: var(--text-dim); letter-spacing:1.5px; text-transform:uppercase; border-bottom: 1px solid var(--border); margin-bottom:4px;">
+                Топ-5 классов (Validation)
+            </div>
+            <div class="plotly-chart-wrapper">{{ plots.top5 | safe }}</div>
+        </div>
+    </div>
+
+    <div class="col-md-6 d-flex align-items-center justify-content-center fade-up fade-up-4">
+        <div class="text-center">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" style="filter: drop-shadow(0 0 12px rgba(0,255,136,0.2)); margin-bottom:12px;">
+                <circle cx="32" cy="32" r="30" stroke="#00ff88" stroke-width="0.8" opacity="0.2"/>
+                <circle cx="32" cy="32" r="20" stroke="#00ff88" stroke-width="0.8" opacity="0.3"/>
+                <circle cx="32" cy="32" r="10" stroke="#00ff88" stroke-width="1" opacity="0.5"/>
+                <circle cx="32" cy="32" r="4" fill="#00ff88" opacity="0.7"/>
+                <path d="M32 2v8M32 54v8M2 32h8M54 32h8" stroke="#00ff88" stroke-width="1" stroke-linecap="round" opacity="0.3"/>
+            </svg>
+            <div class="orbitron" style="font-size:0.7rem; color: var(--green); letter-spacing:2px;">КЛАССИФИКАЦИЯ ЗАВЕРШЕНА</div>
+            <div class="mono mt-1" style="font-size:11px; color: var(--text-dim);">Внеземные сигналы обработаны</div>
+        </div>
+    </div>
+
+    <div class="col-12 fade-up">
+        <div class="hud-card" style="padding: 0.75rem;">
+            <div class="mono px-2 pt-1 pb-2 d-flex align-items-center gap-3" style="font-size:10px; color: var(--text-dim); letter-spacing:1.5px; text-transform:uppercase; border-bottom: 1px solid var(--border); margin-bottom:4px;">
+                Точность определения каждой записи тестового набора
+                <span style="margin-left:auto; display:flex; gap:12px;">
+                    <span><span style="display:inline-block;width:8px;height:8px;background:#00ff88;border-radius:1px;margin-right:4px;"></span>≥ 0.5</span>
+                    <span><span style="display:inline-block;width:8px;height:8px;background:#ff2d55;border-radius:1px;margin-right:4px;"></span>&lt; 0.5</span>
+                </span>
+            </div>
+            <div class="plotly-chart-wrapper">{{ plots.test_detail | safe }}</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Back button -->
+<div class="mt-4 fade-up">
+    <a href="{{ url_for('profile') }}" class="btn-hud btn-hud-outline" style="text-decoration:none; display:inline-flex;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="margin-right:4px">
+            <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Вернуться в профиль
+    </a>
+</div>
+
+{% endblock %}

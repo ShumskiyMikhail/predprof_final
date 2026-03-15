@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALIEN ANALYTICS — Signal Processor 2226</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* ── VARIABLES ─────────────────────────────────────────────────── */
+        :root {
+            --bg:        #020810;
+            --bg2:       #040d1a;
+            --panel:     #071527;
+            --panel2:    #0a1e35;
+            --border:    #0d2a45;
+            --border2:   #1a3a5c;
+            --cyan:      #00e5ff;
+            --cyan2:     #00b4cc;
+            --green:     #00ff88;
+            --red:       #ff2d55;
+            --yellow:    #ffd60a;
+            --purple:    #7b2fff;
+            --text:      #c8dae8;
+            --text-dim:  #4a6a80;
+            --glow-c:    rgba(0,229,255,0.15);
+            --glow-g:    rgba(0,255,136,0.15);
+        }
+
+        /* ── RESET & BASE ──────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 15px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Star field background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+                radial-gradient(1px 1px at 25% 60%, rgba(255,255,255,0.4) 0%, transparent 100%),
+                radial-gradient(1px 1px at 40% 30%, rgba(255,255,255,0.5) 0%, transparent 100%),
+                radial-gradient(1px 1px at 55% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+                radial-gradient(1px 1px at 70% 10%, rgba(255,255,255,0.6) 0%, transparent 100%),
+                radial-gradient(1px 1px at 80% 50%, rgba(255,255,255,0.4) 0%, transparent 100%),
+                radial-gradient(1px 1px at 90% 70%, rgba(255,255,255,0.5) 0%, transparent 100%),
+                radial-gradient(1px 1px at 15% 90%, rgba(255,255,255,0.3) 0%, transparent 100%),
+                radial-gradient(1px 1px at 60% 45%, rgba(255,255,255,0.4) 0%, transparent 100%),
+                radial-gradient(1px 1px at 35% 75%, rgba(255,255,255,0.5) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Scanline overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.03) 2px,
+                rgba(0,0,0,0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* ── NAVBAR ────────────────────────────────────────────────────── */
+        .navbar {
+            background: rgba(4,13,26,0.95) !important;
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border2);
+            box-shadow: 0 0 40px rgba(0,229,255,0.06);
+            position: relative;
+            z-index: 100;
+            padding: 0.75rem 0;
+        }
+        .navbar::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+            opacity: 0.4;
+        }
+        .navbar-brand {
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            font-size: 1.1rem;
+            color: var(--cyan) !important;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .navbar-brand img { filter: drop-shadow(0 0 6px var(--cyan)); }
+        .nav-user {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .nav-user .user-id {
+            color: var(--cyan);
+            background: rgba(0,229,255,0.07);
+            border: 1px solid rgba(0,229,255,0.2);
+            border-radius: 4px;
+            padding: 3px 10px;
+        }
+        .nav-user a {
+            color: var(--red);
+            text-decoration: none;
+            font-size: 11px;
+            letter-spacing: 1px;
+            border: 1px solid rgba(255,45,85,0.3);
+            padding: 3px 10px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .nav-user a:hover {
+            background: rgba(255,45,85,0.15);
+            border-color: var(--red);
+        }
+
+        /* ── CONTAINER ─────────────────────────────────────────────────── */
+        .main-container {
+            position: relative;
+            z-index: 2;
+            padding: 2rem 0 4rem;
+        }
+
+        /* ── CARDS ─────────────────────────────────────────────────────── */
+        .hud-card {
+            background: var(--panel);
+            border: 1px solid var(--border2);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hud-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+            opacity: 0.5;
+        }
+        .hud-card-cyan::before { background: linear-gradient(90deg, transparent, var(--cyan), transparent); }
+        .hud-card-green::before { background: linear-gradient(90deg, transparent, var(--green), transparent); }
+        .hud-card-red::before   { background: linear-gradient(90deg, transparent, var(--red), transparent); }
+        .hud-card-yellow::before { background: linear-gradient(90deg, transparent, var(--yellow), transparent); }
+        .hud-card-purple::before { background: linear-gradient(90deg, transparent, var(--purple), transparent); }
+
+        /* Corner accents */
+        .hud-card .corner {
+            position: absolute;
+            width: 12px; height: 12px;
+            border-color: var(--cyan);
+            border-style: solid;
+            opacity: 0.5;
+        }
+        .hud-card .corner-tl { top: 0; left: 0; border-width: 1px 0 0 1px; }
+        .hud-card .corner-tr { top: 0; right: 0; border-width: 1px 1px 0 0; }
+        .hud-card .corner-bl { bottom: 0; left: 0; border-width: 0 0 1px 1px; }
+        .hud-card .corner-br { bottom: 0; right: 0; border-width: 0 1px 1px 0; }
+
+        /* ── TYPOGRAPHY ────────────────────────────────────────────────── */
+        .orbitron { font-family: 'Orbitron', monospace; }
+        .mono { font-family: 'Share Tech Mono', monospace; }
+        .section-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.7rem;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--border2), transparent);
+        }
+
+        /* ── FORM CONTROLS ─────────────────────────────────────────────── */
+        .form-label-hud {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+            display: block;
+        }
+        .form-control, .form-select {
+            background: #020c18 !important;
+            border: 1px solid var(--border2) !important;
+            color: var(--cyan) !important;
+            border-radius: 3px !important;
+            font-family: 'Share Tech Mono', monospace !important;
+            font-size: 13px !important;
+            padding: 8px 12px !important;
+            transition: border-color 0.2s, box-shadow 0.2s !important;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--cyan) !important;
+            box-shadow: 0 0 0 2px rgba(0,229,255,0.15) !important;
+            outline: none !important;
+        }
+        .form-control::placeholder { color: var(--text-dim) !important; opacity: 0.7; }
+        input[type="file"].form-control { color: var(--text-dim) !important; cursor: pointer; }
+        input[type="file"].form-control::-webkit-file-upload-button {
+            background: rgba(0,229,255,0.1);
+            border: 1px solid rgba(0,229,255,0.3);
+            color: var(--cyan);
+            border-radius: 3px;
+            padding: 4px 14px;
+            font-family: 'Orbitron', monospace;
+            font-size: 9px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        input[type="file"].form-control::-webkit-file-upload-button:hover {
+            background: rgba(0,229,255,0.2);
+        }
+
+        /* ── BUTTONS ───────────────────────────────────────────────────── */
+        .btn-hud {
+            font-family: 'Orbitron', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-radius: 3px;
+            padding: 10px 28px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.25s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-hud::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 100%);
+        }
+        .btn-hud-cyan {
+            background: rgba(0,229,255,0.1);
+            border: 1px solid var(--cyan2);
+            color: var(--cyan);
+            box-shadow: 0 0 20px rgba(0,229,255,0.1), inset 0 0 20px rgba(0,229,255,0.03);
+        }
+        .btn-hud-cyan:hover {
+            background: rgba(0,229,255,0.2);
+            border-color: var(--cyan);
+            color: var(--cyan);
+            box-shadow: 0 0 30px rgba(0,229,255,0.25), inset 0 0 20px rgba(0,229,255,0.08);
+            transform: translateY(-1px);
+        }
+        .btn-hud-green {
+            background: rgba(0,255,136,0.08);
+            border: 1px solid rgba(0,255,136,0.4);
+            color: var(--green);
+            box-shadow: 0 0 20px rgba(0,255,136,0.08);
+        }
+        .btn-hud-green:hover {
+            background: rgba(0,255,136,0.18);
+            border-color: var(--green);
+            color: var(--green);
+            box-shadow: 0 0 30px rgba(0,255,136,0.2);
+            transform: translateY(-1px);
+        }
+        .btn-hud-outline {
+            background: transparent;
+            border: 1px solid var(--border2);
+            color: var(--text-dim);
+        }
+        .btn-hud-outline:hover {
+            border-color: var(--cyan2);
+            color: var(--cyan);
+        }
+
+        /* ── ALERTS ────────────────────────────────────────────────────── */
+        .alert-hud {
+            background: rgba(0,229,255,0.05);
+            border: 1px solid rgba(0,229,255,0.2);
+            border-left: 3px solid var(--cyan);
+            border-radius: 3px;
+            color: var(--text);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            padding: 10px 16px;
+        }
+
+        /* ── BADGE ─────────────────────────────────────────────────────── */
+        .badge-hud {
+            font-family: 'Orbitron', monospace;
+            font-size: 9px;
+            letter-spacing: 2px;
+            padding: 4px 10px;
+            border-radius: 2px;
+        }
+        .badge-admin {
+            background: rgba(123,47,255,0.2);
+            border: 1px solid rgba(123,47,255,0.5);
+            color: #b47fff;
+        }
+        .badge-user {
+            background: rgba(0,229,255,0.1);
+            border: 1px solid rgba(0,229,255,0.35);
+            color: var(--cyan);
+        }
+
+        /* ── PLOTLY override ───────────────────────────────────────────── */
+        .js-plotly-plot .plotly { border-radius: 3px; }
+        .plotly-chart-wrapper { border-radius: 3px; overflow: hidden; }
+
+        /* ── ANIMATIONS ────────────────────────────────────────────────── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse-border {
+            0%, 100% { opacity: 0.3; }
+            50%       { opacity: 0.8; }
+        }
+        .fade-up { animation: fadeUp 0.5s ease both; }
+        .fade-up-1 { animation-delay: 0.05s; }
+        .fade-up-2 { animation-delay: 0.1s; }
+        .fade-up-3 { animation-delay: 0.15s; }
+        .fade-up-4 { animation-delay: 0.2s; }
+
+        /* ── SCROLLBAR ─────────────────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg2); }
+        ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--cyan2); }
+    </style>
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container-xl">
+            <a class="navbar-brand" href="#">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="3" fill="#00e5ff"/>
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke="#00e5ff" stroke-width="1.2" fill="none" opacity="0.4"/>
+                    <path d="M12 6v2M12 16v2M6 12H4M20 12h-2" stroke="#00e5ff" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+                    <path d="M7.05 7.05L5.64 5.64M18.36 18.36l-1.41-1.41M7.05 16.95l-1.41 1.41M18.36 5.64l-1.41 1.41" stroke="#00e5ff" stroke-width="1" opacity="0.35"/>
+                </svg>
+                ALIEN ANALYTICS
+            </a>
+            {% if current_user.is_authenticated %}
+            <div class="nav-user">
+                <span class="user-id">
+                    {{ current_user.last_name | upper }}_{{ current_user.first_name[0] | upper }}
+                </span>
+                <span style="color: var(--text-dim); font-size:11px;">
+                    {% if current_user.role == 'admin' %}
+                    <span class="badge-hud badge-admin">ADMIN</span>
+                    {% else %}
+                    <span class="badge-hud badge-user">OPERATOR</span>
+                    {% endif %}
+                </span>
+                <a href="/logout">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" style="margin-right:4px">
+                        <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    ВЫХОД
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- MAIN -->
+    <div class="main-container">
+        <div class="container-xl">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for msg in messages %}
+                        <div class="alert-hud mb-3 fade-up">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="margin-right:8px;vertical-align:middle">
+                                <circle cx="12" cy="12" r="10" stroke="#00e5ff" stroke-width="1.5"/>
+                                <path d="M12 8v4M12 16h.01" stroke="#00e5ff" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            {{ msg }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
